@@ -1,44 +1,34 @@
 # ❤️ Heart Disease Prediction using Machine Learning
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-Pipeline-orange)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-An end-to-end machine learning project that predicts whether a patient has heart disease from 13 clinical measurements. Five classifiers are compared with a hold-out test set **and** 5-fold cross-validation, the best one is tuned, and the final model is saved as a single scikit-learn `Pipeline` that accepts raw patient values.
+An end-to-end machine learning project that predicts whether a patient has heart disease from 13 clinical measurements. Five classifiers are compared, a Random Forest is tuned with GridSearchCV, and the final model is saved for reuse.
 
 > ⚠️ **Educational project – not a medical device.** The model is trained on 297 patients from one clinic and must not be used for real diagnosis.
 
 ---
 
-## 📊 Results at a glance
+## 📊 Results
 
-| Model | CV accuracy (5-fold) | Test accuracy | Test recall | Test ROC-AUC |
-|---|---|---|---|---|
-| **Logistic Regression** | **0.823 ± 0.053** | 0.917 | 0.821 | 0.953 |
-| SVM | 0.790 ± 0.068 | 0.900 | 0.786 | 0.940 |
-| KNN | 0.769 ± 0.060 | 0.900 | 0.786 | 0.959 |
-| Random Forest | 0.768 ± 0.043 | 0.883 | 0.786 | 0.945 |
-| Decision Tree | 0.735 ± 0.058 | 0.783 | 0.714 | 0.779 |
+Five models were trained on an 80/20 stratified split (237 train / 60 test patients) with scaled features where needed:
 
-**Final model – tuned Logistic Regression** (`L1`, `C = 0.1`, chosen by 5-fold CV ROC-AUC = 0.896):
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+|---|---|---|---|---|---|
+| **Logistic Regression** | **0.917** | 1.000 | 0.821 | 0.902 | 0.953 |
+| KNN | 0.900 | 1.000 | 0.786 | 0.880 | 0.959 |
+| SVM | 0.900 | 1.000 | 0.786 | 0.880 | 0.940 |
+| Random Forest | 0.883 | 0.957 | 0.786 | 0.863 | 0.940 |
+| Decision Tree | 0.783 | 0.800 | 0.714 | 0.755 | 0.779 |
 
-| Hold-out test set (60 patients) | |
-|---|---|
-| Accuracy | 0.900 |
-| Precision (disease) | 1.00 |
-| Recall (disease) | 0.79 |
-| ROC-AUC | 0.912 |
+A Random Forest was then tuned with `GridSearchCV` (5-fold; best: `n_estimators=300`, `max_depth=5`, `min_samples_leaf=2`, `min_samples_split=2`) → **cross-validated accuracy 0.823, test accuracy 0.85**. Its most important features are `cp`, `thalach`, `ca`, `oldpeak` and `thal`.
 
-**How to read these numbers honestly**
+**Caveats**
 
-- The test set has only 60 patients – one patient is ≈ 1.7 percentage points. The cross-validated accuracy (~82%) is a more conservative estimate of real performance than the ~90% hold-out score.
-- Tuning improved cross-validated ROC-AUC (0.876 → 0.896) and produced a sparser model, but the hold-out score is slightly lower than the untuned model. That gap is within noise; the tuned model was kept because it was selected by cross-validation, not by peeking at the test set.
-- Recall for the *Disease* class is 79%: the model still misses some sick patients, which would matter a lot in any screening use.
-
-<p align="center">
-  <img src="images/05_model_comparison.png" width="48%" alt="Model comparison">
-  <img src="images/06_confusion_matrix_roc.png" width="48%" alt="Confusion matrix and ROC curve">
-</p>
+- The test set has only 60 patients (one patient ≈ 1.7 percentage points), so small differences between models are within noise.
+- On this split the tuned Random Forest did not beat untuned Logistic Regression; tuning Logistic Regression is a natural next step.
+- Recall tops out around 82%, so some patients with heart disease are still missed.
 
 ---
 
@@ -69,27 +59,17 @@ An end-to-end machine learning project that predicts whether a patient has heart
 
 - Disease is far more common with **chest-pain type 3**, **exercise-induced angina**, **more blocked vessels (`ca`)** and abnormal **thalassemia** results.
 - Patients with disease reach a **lower maximum heart rate** and show higher **ST depression (`oldpeak`)**.
-- The final model relies mainly on `ca`, `thal`, `oldpeak`, `thalach` (protective), `exang` and `cp`; the L1 penalty shrinks six of the other seven features to exactly zero.
-
-<p align="center">
-  <img src="images/07_feature_importance.png" width="48%" alt="Feature importance">
-  <img src="images/04_correlation_heatmap.png" width="48%" alt="Correlation heatmap">
-</p>
+- The tuned Random Forest relies most on `cp`, `thalach`, `ca`, `oldpeak` and `thal`.
 
 ---
 
 ## 🧪 Method
 
 ```
-Load & inspect → EDA → stratified 80/20 split
-      → Pipeline(StandardScaler → model) for 5 classifiers
-      → rank by 5-fold CV accuracy → GridSearchCV (ROC-AUC) on the best
-      → evaluate on held-out test set → coefficients → save Pipeline
+Load & inspect → EDA → stratified 80/20 split → StandardScaler (fit on train only)
+      → train 5 classifiers → compare metrics → GridSearchCV on Random Forest
+      → feature importance → save model
 ```
-
-- **No data leakage:** the scaler lives inside the `Pipeline`, so it is fitted on training folds only.
-- **Reproducible:** fixed `random_state = 42` everywhere; the notebook uses relative paths.
-- **Deployable:** the saved model is one `Pipeline`, so it takes raw (unscaled) feature values.
 
 ---
 
@@ -105,7 +85,7 @@ pip install -r requirements.txt
 **Re-run the analysis**
 
 ```bash
-jupyter notebook notebooks/Heart_Disease_Prediction.ipynb
+jupyter notebook notebooks/Heart_disease_predicting_analysis.ipynb
 ```
 
 **Predict for a patient with the saved model**
@@ -117,14 +97,14 @@ python predict.py --age 40 --sex 0 --cp 1 --thalach 190 --oldpeak 0 --ca 0 --tha
 
 ```python
 import joblib, pandas as pd
-model = joblib.load("models/heart_disease_model.joblib")
+model = joblib.load("models/heart_disease_model.pkl")
 patient = pd.DataFrame([{"age": 62, "sex": 0, "cp": 3, "trestbps": 160, "chol": 164, "fbs": 0,
                          "restecg": 2, "thalach": 145, "exang": 0, "oldpeak": 6.2,
                          "slope": 2, "ca": 3, "thal": 2}])
 print(model.predict_proba(patient)[0, 1])           # probability of heart disease
 ```
 
-> The saved `.joblib` was created with scikit-learn 1.9; if you use a very different version, re-run the notebook to regenerate it.
+> The saved model was created with scikit-learn 1.9; with a very different version, re-run the notebook to regenerate it.
 
 ---
 
@@ -133,14 +113,12 @@ print(model.predict_proba(patient)[0, 1])           # probability of heart disea
 ```
 Heart-Disease-Prediction-ML/
 ├── notebooks/
-│   ├── Heart_disease_predicting_analysis.ipynb  # original notebook (author's own, unchanged)
-│   └── Heart_Disease_Prediction.ipynb           # cleaned, re-run version with outputs
+│   └── Heart_disease_predicting_analysis.ipynb   # full analysis with outputs
 ├── data/
-│   └── heart_cleveland_upload.csv       # dataset
+│   └── heart_cleveland_upload.csv                # dataset
 ├── models/
-│   └── heart_disease_model.joblib       # saved Pipeline (scaler + tuned model)
-├── images/                              # figures generated by the notebook
-├── predict.py                           # command-line prediction
+│   └── heart_disease_model.pkl                   # saved tuned Random Forest
+├── predict.py                                    # command-line prediction
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -150,10 +128,10 @@ Heart-Disease-Prediction-ML/
 
 ## 🔮 Future improvements
 
-- Nested cross-validation or repeated CV for a tighter performance estimate on this small dataset.
-- Calibrate probabilities and tune the decision threshold for higher recall.
-- Try gradient boosting (XGBoost / LightGBM) and compare against logistic regression.
-- Wrap `predict.py` in a Streamlit app.
+- Tune Logistic Regression too and pick the final model by cross-validation rather than a single split.
+- Use repeated or nested cross-validation for a tighter estimate on this small dataset.
+- Tune the decision threshold for higher recall.
+- Try gradient boosting (XGBoost / LightGBM) and wrap `predict.py` in a Streamlit app.
 
 ---
 

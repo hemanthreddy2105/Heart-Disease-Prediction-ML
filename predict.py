@@ -14,7 +14,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-MODEL_PATH = Path(__file__).parent / "models" / "heart_disease_model.joblib"
+MODEL_PATH = Path(__file__).parent / "models" / "heart_disease_model.pkl"
 FEATURES = ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg",
             "thalach", "exang", "oldpeak", "slope", "ca", "thal"]
 EXAMPLE = dict(age=62, sex=0, cp=3, trestbps=160, chol=164, fbs=0, restecg=2,
