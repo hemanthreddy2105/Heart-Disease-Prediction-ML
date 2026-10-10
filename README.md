@@ -133,7 +133,8 @@ print(model.predict_proba(patient)[0, 1])           # probability of heart disea
 ```
 Heart-Disease-Prediction-ML/
 ├── notebooks/
-│   └── Heart_Disease_Prediction.ipynb   # full analysis with outputs
+│   ├── Heart_disease_predicting_analysis.ipynb  # original notebook (author's own, unchanged)
+│   └── Heart_Disease_Prediction.ipynb           # cleaned, re-run version with outputs
 ├── data/
 │   └── heart_cleveland_upload.csv       # dataset
 ├── models/
